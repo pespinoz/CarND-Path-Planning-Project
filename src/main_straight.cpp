@@ -254,8 +254,14 @@ int main() {
             double dist_inc = 0.5;
             for(int i = 0; i < 50; i++)
             {
-                next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-                next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
+
+                double next_s_vals = car_s+(dist_inc*i);
+                double next_d_vals = 6;
+
+                vector<double> xy = getXY(next_s_vals, next_d_vals, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+                next_x_vals.push_back(xy[0]);
+                next_y_vals.push_back(xy[1]);
             }
 
 
