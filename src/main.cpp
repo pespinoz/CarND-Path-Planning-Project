@@ -286,9 +286,13 @@ int main() {
                     // if using previous path we can project the car so we compute what it'll look like in the future
                     s += (double)prev_size*0.02*speed;
                     // knowing this, is our car_s close to the other car's s? if in front of us, and gap < 30m:
-                    if((s > car_s) && (s - car_s < 30))
+                    if((s > car_s) && (s - car_s < 35))
                     {
                         too_close = true; // we could deaccelerate or change lanes
+                        if(ini_lane > 0)
+                        {
+                            ini_lane = 0;
+                        }
                     }
                 }
             }
