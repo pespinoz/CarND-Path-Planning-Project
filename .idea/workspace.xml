@@ -12,6 +12,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c5ac27fb-f396-4b43-8ae2-26bb94688195" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/pablo.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/pablo.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
@@ -37,13 +38,13 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="cpp" value="3594" />
+          <entry key="cpp" value="3873" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Doxygen file" value="5" />
-          <entry key="ObjectiveC" value="3589" />
+          <entry key="ObjectiveC" value="3868" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -69,8 +70,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="370">
-              <caret line="291" column="20" selection-start-line="291" selection-start-column="20" selection-end-line="291" selection-end-column="20" />
+            <state relative-caret-position="306">
+              <caret line="313" column="27" lean-forward="true" selection-start-line="313" selection-start-column="27" selection-end-line="313" selection-end-column="27" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -235,15 +236,15 @@
       <workItem from="1533094770561" duration="10332000" />
       <workItem from="1533116963655" duration="2218000" />
       <workItem from="1533119551041" duration="8824000" />
-      <workItem from="1533192855415" duration="15667000" />
+      <workItem from="1533192855415" duration="16766000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="64940000" />
+    <option name="totallyTimeSpent" value="66039000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="30" width="1600" height="803" extended-state="7" />
+    <frame x="0" y="30" width="1600" height="803" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4686775" visible="true" weight="0.17567568" />
@@ -279,12 +280,12 @@
       <breakpoints>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/main.cpp</url>
-          <line>253</line>
+          <line>250</line>
           <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/main.cpp</url>
-          <line>326</line>
+          <line>335</line>
           <option name="timeStamp" value="23" />
         </line-breakpoint>
       </breakpoints>
@@ -358,8 +359,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="370">
-          <caret line="291" column="20" selection-start-line="291" selection-start-column="20" selection-end-line="291" selection-end-column="20" />
+        <state relative-caret-position="306">
+          <caret line="313" column="27" lean-forward="true" selection-start-line="313" selection-start-column="27" selection-end-line="313" selection-end-column="27" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>

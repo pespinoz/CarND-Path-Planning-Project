@@ -187,10 +187,7 @@ int main() {
   // The initial lane
   int ini_lane = 1;
   // Reference velocity
-  double ref_vel = 49.5;
-
-  int iteracion = 0;                                                            /////////////
-
+  double ref_vel = 0.0;
 
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
@@ -214,7 +211,7 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&iteracion, &ini_lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
+  h.onMessage([&ini_lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,
                &map_waypoints_dy]
     (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -291,10 +288,18 @@ int main() {
                     // knowing this, is our car_s close to the other car's s? if in front of us, and gap < 30m:
                     if((s > car_s) && (s - car_s < 30))
                     {
-                        ref_vel = 29.5;
+                        too_close = true; // we could deaccelerate or change lanes
                     }
-
                 }
+            }
+
+            if(too_close)
+            {
+                ref_vel -= 0.224; // equivalent to -5m/s2
+            }
+            else if(ref_vel < 49.5)
+            {
+                ref_vel += 0.224;
             }
 
           	// create a list of widely spaced (x, y) waypoints, evenly spaced at 30m. Later we will interpolate
