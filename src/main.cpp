@@ -170,13 +170,23 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
-//
-void generateTrajectory(int ini_lane, double car_x, double car_y, double car_yaw, double car_s, int prev_size,
-        vector<double> previous_path_x, vector<double> previous_path_y, const vector<double> map_waypoints_x,
-        const vector<double> map_waypoints_y, const vector<double> map_waypoints_s, vector<double> &ptsx,
-        vector<double> &ptsy, double &ref_x, double &ref_y, double &ref_yaw, double ref_vel,
-        vector<double> &next_x_vals, vector<double> &next_y_vals)
+// define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y, double car_yaw, double car_s,
+        int prev_size, vector<double> previous_path_x, vector<double> previous_path_y,
+        const vector<double> &map_waypoints_x, const vector<double> &map_waypoints_y,
+        const vector<double> &map_waypoints_s, vector<double> &next_x_vals, vector<double> &next_y_vals)
 {
+    // create a list of widely spaced (x, y) waypoints, evenly spaced at 30m. Later we will interpolate
+    // these points with a spline and fill with more points, such that the speed is controlled.
+    vector<double> ptsx;
+    vector<double> ptsy;
+
+    // reference x, y, yaw states. either we will reference the starting point as i) where the
+    // car is, or ii) at the previous path's end point
+    double ref_x;
+    double ref_y;
+    double ref_yaw;
+
     if(prev_size < 2)
     {
         ref_x = car_x;
@@ -224,10 +234,8 @@ void generateTrajectory(int ini_lane, double car_x, double car_y, double car_yaw
     ptsy.push_back(next_wp1[1]);
     ptsy.push_back(next_wp2[1]);
 
-
     // Transformation to car's system of reference, such that the last point of the previous path's
     // at (0, 0) with a zero angle
-
     for(int i=0; i < ptsx.size(); i++)
     {
         double shift_x = ptsx[i]-ref_x;
@@ -280,6 +288,51 @@ void generateTrajectory(int ini_lane, double car_x, double car_y, double car_yaw
     }
 }
 
+// detect proximity of a car ahead of us
+void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
+        const vector<vector<double>> &sensor_fusion, int &ini_lane, bool &proximity_flag)
+{
+    double car_future_s;
+    // the following define parameters of the sensor fusion data, i.e. parameters of other cars
+    double d;
+    double s;
+    double vx;
+    double vy;
+    double v;
+
+    // what our car s will look like in the future
+    if (prev_size > 0)
+    {
+        car_future_s = end_path_s;
+    }
+    else
+    {
+        car_future_s = car_s;
+    }
+
+    // Go through sensor fusion data for i cars and take action if there's a car in my lane
+    for (int i = 0; i < sensor_fusion.size(); i++)
+    {
+        d = sensor_fusion[i][6];
+        // if another car is in my lane
+        if ((d < 2 + 4 * ini_lane + 2) && (d > 2 + 4 * ini_lane - 2))
+        {
+            vx = sensor_fusion[i][3];
+            vy = sensor_fusion[i][4];
+            v = sqrt(vx * vx + vy * vy);
+            s = sensor_fusion[i][5];
+
+            // using previous path we can project the car so we know what it'll look like in the future
+            s += (double) prev_size * 0.02 * v;
+
+            // knowing this, is our car_s close to the other car's s? if in front of us, and gap < X [m]:
+            if ((s > car_future_s) && (s - car_future_s < gap))
+            {
+                proximity_flag = true;
+            }
+        }
+    }
+}
 
 int main() {
   uWS::Hub h;
@@ -362,54 +415,22 @@ int main() {
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
           	json msgJson;
-
-            // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-
             int prev_size = previous_path_x.size();
 
+            // TODO: detect proximity of a car ahead of us given a gap in meters
+            bool proximity_flag = false;    // flag that indicates proximity
+            int gap = 30;                   // gap in meters
 
-            // what our car s will look like in the future
-            if(prev_size > 0)
+            detectProximity(prev_size, gap, car_s, end_path_s, sensor_fusion, ini_lane, proximity_flag);
+            //std::cout << proximity_flag << std::endl;
+
+            // TODO: Take action
+            if(proximity_flag)
             {
-                car_s = end_path_s;
-            }
-
-            bool too_close = false;
-            // these refer to the sensor fusion data, i.e. other cars
-            float d;
-            float s;
-            double vx;
-            double vy;
-            double speed;
-
-            // Find a reference speed to go if there's a car in my lane
-            for(int i=0; i < sensor_fusion.size(); i++)
-            {
-                d = sensor_fusion[i][6];
-                // car is in my lane
-                if((d < 2+4*ini_lane+2) && (d > 2+4*ini_lane-2))
+                if (ini_lane > 0) ///////////// we could deaccelerate or change lanes
                 {
-                    vx = sensor_fusion[i][3];
-                    vy = sensor_fusion[i][4];
-                    speed = sqrt(vx*vx+vy*vy);
-                    s = sensor_fusion[i][5];
-
-                    // if using previous path we can project the car so we know what it'll look like in the future
-                    s += (double)prev_size*0.02*speed;
-                    // knowing this, is our car_s close to the other car's s? if in front of us, and gap < 30m:
-                    if((s > car_s) && (s - car_s < 35))
-                    {
-                        too_close = true; // we could deaccelerate or change lanes
-                        if(ini_lane > 0)
-                        {
-                            ini_lane = 0;
-                        }
-                    }
+                    ini_lane = 0;
                 }
-            }
-
-            if(too_close)
-            {
                 ref_vel -= 0.224; // equivalent to -5m/s2
             }
             else if(ref_vel < 49.5)
@@ -417,24 +438,13 @@ int main() {
                 ref_vel += 0.224;
             }
 
-            // create a list of widely spaced (x, y) waypoints, evenly spaced at 30m. Later we will interpolate
-            // these points with a spline and fill with more points, such that the speed is controlled.
-            vector<double> ptsx;
-            vector<double> ptsy;
-
-            // reference x, y, yaw states. either we will reference the starting point as i) where the
-            // car is, or ii) at the previous path's end point
-            double ref_x;
-            double ref_y;
-            double ref_yaw;
-
+            // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             // Define the actual points the planner will be using:
             vector<double> next_x_vals;
             vector<double> next_y_vals;
 
-            generateTrajectory(ini_lane, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
-                    previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s, ptsx, ptsy, ref_x, ref_y,
-                    ref_yaw, ref_vel, next_x_vals, next_y_vals);
+            generateTrajectory(ini_lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
+                    previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s, next_x_vals, next_y_vals);
 
             // Continue
           	msgJson["next_x"] = next_x_vals;
