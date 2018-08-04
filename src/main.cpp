@@ -370,6 +370,16 @@ int getNextState(const std::string &state, int prev_lane)
     return lane;
 }
 
+// Given the next state, i know what lane to change into
+void actionNextState(const std::string &state, const bool &flag1, double &ref_vel)
+{
+    double accpf =  0.224; // 0.224 (default) equivalent to -5m/s2
+    if (state == "KL" && flag1) {
+        ref_vel -= accpf;
+    } else if (state == "KL" && ref_vel < 49.5) {
+        ref_vel += accpf;
+    }
+}
 
 int main() {
   uWS::Hub h;
@@ -471,9 +481,9 @@ int main() {
             {
                 //vector<vector<double>> aa;
                 //vector<vector<double>> bb;
-                std::ofstream myfile;
-                std::string fname = "data/myfile_" + std::to_string(iteracion) + ".txt";
-                myfile.open(fname);
+                //std::ofstream myfile;
+                //std::string fname = "data/myfile_" + std::to_string(iteracion) + ".txt";
+                //myfile.open(fname);
                 for(int i=0; i < possible_states.size(); i++) {
                     if (possible_states[i] == "LCL")
                     {
@@ -508,26 +518,15 @@ int main() {
                 }
                 // algun metodo de eleccion me dara el indice de possible states 0,1   0,1,2    0,1
                 std::string next_state;
-                next_state = possible_states[0];//"LCL";
+                next_state = "KL"; //possible_states[0];//"LCL";
                 lane = getNextState(next_state, lane);
                 std::cout << "lane=" << lane << ", " << possible_states[0] << " , iter=" << iteracion << std::endl;
             }
 
+            std::string next_state;
+            next_state = "KL"; //possible_states[0];//"LCL";
             // TODO: (done) Take action
-            double accpf =  0.224; // 0.224 (default) equivalent to -5m/s2
-            if(proximity_flag)
-            {
-                //if (lane > 0) ///////////// we could deaccelerate or change lanes
-                //{
-                //lane = lane;
-                //}
-
-                ref_vel -= accpf;
-            }
-            else if(ref_vel < 49.5)
-            {
-                ref_vel += accpf;
-            }
+            actionNextState(next_state, proximity_flag, ref_vel);
 
             // TODO: (done) define a path made up of x,y points that the car will visit sequentially every .02s
             // Define the actual points the planner will be using:
