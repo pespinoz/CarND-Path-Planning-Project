@@ -171,10 +171,10 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 }
 
 // Define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y, double car_yaw, double car_s,
+void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, double car_yaw, double car_s,
         int prev_size, vector<double> previous_path_x, vector<double> previous_path_y,
         const vector<double> &map_waypoints_x, const vector<double> &map_waypoints_y,
-        const vector<double> &map_waypoints_s, vector<double> &next_x_vals, vector<double> &next_y_vals)
+        const vector<double> &map_waypoints_s, vector<double> &x_vals, vector<double> &y_vals)
 {
     // create a list of widely spaced (x, y) waypoints, evenly spaced at 30m. Later we will interpolate
     // these points with a spline and fill with more points, such that the speed is controlled.
@@ -221,9 +221,9 @@ void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y
     }
 
     // In Frenet add evenly 30m spaced points ahead of the starting reference
-    vector<double> next_wp0 = getXY(car_s+30, 2+4*ini_lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp1 = getXY(car_s+60, 2+4*ini_lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp2 = getXY(car_s+90, 2+4*ini_lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp0 = getXY(car_s+30, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+60, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+90, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
     // Complete the 5 spaced waypoints:
     ptsx.push_back(next_wp0[0]);
@@ -254,8 +254,8 @@ void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y
     // Start with all of the previous path points (aka whatever is left from the previous iteration plan)
     for(int i=0; i < previous_path_x.size(); i++)
     {
-        next_x_vals.push_back(previous_path_x[i]);
-        next_y_vals.push_back(previous_path_y[i]);
+        x_vals.push_back(previous_path_x[i]);
+        y_vals.push_back(previous_path_y[i]);
     }
 
     // Calculate how to break up spline points such that we travel at desired reference velocity:
@@ -283,14 +283,14 @@ void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y
         x_point += ref_x;
         y_point += ref_y;
 
-        next_x_vals.push_back(x_point);
-        next_y_vals.push_back(y_point);
+        x_vals.push_back(x_point);
+        y_vals.push_back(y_point);
     }
 }
 
 // Detect proximity of a car ahead of us
 void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
-        const vector<vector<double>> &sensor_fusion, int &ini_lane, bool &proximity_flag)
+        const vector<vector<double>> &sensor_fusion, int &lane, bool &proximity_flag)
 {
     double car_future_s;
     // the following define parameters of the sensor fusion data, i.e. parameters of other cars
@@ -315,7 +315,7 @@ void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
     {
         d = sensor_fusion[i][6];
         // if another car is in my lane
-        if ((d < 2 + 4 * ini_lane + 2) && (d > 2 + 4 * ini_lane - 2))
+        if ((d < 2 + 4 * lane + 2) && (d > 2 + 4 * lane - 2))
         {
             vx = sensor_fusion[i][3];
             vy = sensor_fusion[i][4];
@@ -335,20 +335,39 @@ void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
 }
 
 // Gives a list if possible states for each iteration of the simulator
-std::vector<std::string> getPossibleStates(int ini_lane)
+std::vector<std::string> getPossibleStates(int lane)
 {
-    if(ini_lane == 0)
+    if(lane == 0)
     {
-        return {"LCL", "KL"};
+        return {"KL", "LCR"};
     }
-    else if(ini_lane == 1)
+    else if(lane == 1)
     {
-        return {"LCL", "KL", "LCR"};
+        return {"KL", "LCR", "LCL"};
     }
-    else if(ini_lane == 2)
+    else if(lane == 2)
     {
-        return {"LCR", "KL"};
+        return {"KL", "LCL"};
     }
+}
+
+// Given the next state, i know what lane to change into
+int getNextState(const std::string &state, int prev_lane)
+{
+    int lane;
+    if(state == "KL")
+    {
+        lane = prev_lane;
+    }
+    else if(state == "LCL")
+    {
+        lane = prev_lane-1;
+    }
+    else if(state == "LCR")
+    {
+        lane = prev_lane+1;
+    }
+    return lane;
 }
 
 
@@ -367,11 +386,11 @@ int main() {
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
   // The initial lane
-  int ini_lane = 1;
+  int lane = 1;
   // Reference velocity
   double ref_vel = 0.0;
-  // The initial state
-  std::vector<std::string> ini_state = {"KL"};
+
+  int iteracion=0;
 
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
@@ -395,7 +414,7 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&ini_lane, &ini_state, &ref_vel,
+  h.onMessage([&iteracion, &lane, &ref_vel,
                &map_waypoints_x,&map_waypoints_y,&map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy]
     (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -437,24 +456,72 @@ int main() {
             int prev_size = previous_path_x.size();
 
             // TODO: (done) get a list of possible states
-            std::vector<std::string> states;
-            states = getPossibleStates(ini_lane);
+            std::vector<std::string> possible_states;
+            possible_states = getPossibleStates(lane);
 
             // TODO: (done) detect proximity of a car ahead of us given a gap in meters
             bool proximity_flag = false;    // flag that indicates proximity
             int gap = 30;                   // gap in meters
 
-            detectProximity(prev_size, gap, car_s, end_path_s, sensor_fusion, ini_lane, proximity_flag);
-            //std::cout << proximity_flag << std::endl;
+            detectProximity(prev_size, gap, car_s, end_path_s, sensor_fusion, lane, proximity_flag);
+
+            // TODO: (done) if there's a car ahead of us, generate trajectories for each possible state
+            int hip_lane;
+            if(proximity_flag)
+            {
+                //vector<vector<double>> aa;
+                //vector<vector<double>> bb;
+                std::ofstream myfile;
+                std::string fname = "data/myfile_" + std::to_string(iteracion) + ".txt";
+                myfile.open(fname);
+                for(int i=0; i < possible_states.size(); i++) {
+                    if (possible_states[i] == "LCL")
+                    {
+                        hip_lane = lane - 1;
+                    } else if (possible_states[i] == "LCR")
+                    {
+                        hip_lane = lane + 1;
+                    } else if (possible_states[i] == "KL")
+                    {
+                        hip_lane = lane;
+                    }
+                    // Define the actual points the planner will be using:
+                    // vector<double> next_x;
+                    // vector<double> next_y;
+
+                    //generateTrajectory(hip_lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size,
+                    //                   previous_path_x, previous_path_y, map_waypoints_x, map_waypoints_y,
+                    //                   map_waypoints_s, next_x, next_y);
+                    //aa[i] = next_x;
+                    //bb[i] = next_y;
+                    /*
+                    myfile << "iteracion: " << iteracion << std::endl;
+                    myfile << "--- next_x" << std::endl;
+                    for(vector<double>::const_iterator i = next_x.begin(); i != next_x.end(); ++i) {
+                        myfile << *i << '\n'; }
+                    myfile << "--- next_y" << std::endl;
+                    for(vector<double>::const_iterator i = next_y.begin(); i != next_y.end(); ++i) {
+                        myfile << *i << '\n'; }
+                    */
+
+                    //std::cout << hip_lane << std::endl;
+                }
+                // algun metodo de eleccion me dara el indice de possible states 0,1   0,1,2    0,1
+                std::string next_state;
+                next_state = possible_states[0];//"LCL";
+                lane = getNextState(next_state, lane);
+                std::cout << "lane=" << lane << ", " << possible_states[0] << " , iter=" << iteracion << std::endl;
+            }
 
             // TODO: (done) Take action
             double accpf =  0.224; // 0.224 (default) equivalent to -5m/s2
             if(proximity_flag)
             {
-                if (ini_lane > 0) ///////////// we could deaccelerate or change lanes
-                {
-                    ini_lane = 0;
-                }
+                //if (lane > 0) ///////////// we could deaccelerate or change lanes
+                //{
+                //lane = lane;
+                //}
+
                 ref_vel -= accpf;
             }
             else if(ref_vel < 49.5)
@@ -467,12 +534,15 @@ int main() {
             vector<double> next_x_vals;
             vector<double> next_y_vals;
 
-            generateTrajectory(ini_lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
+            generateTrajectory(lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
                     previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s, next_x_vals, next_y_vals);
+
 
             // Continue
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
+
+          	iteracion += 1;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
