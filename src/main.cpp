@@ -289,8 +289,8 @@ void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, do
 }
 
 // Detect proximity of a car ahead of us
-void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
-        const vector<vector<double>> &sensor_fusion, int &lane, bool &proximity_flag)
+void detectProximityAhead(int prev_size, int gap, double car_s, double end_path_s,
+        const vector<vector<double>> &sensor_fusion, int lane, bool &proximity_flag)
 {
     double car_future_s;
     // the following define parameters of the sensor fusion data, i.e. parameters of other cars
@@ -334,6 +334,98 @@ void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
     }
 }
 
+// Detect proximity of a car in the left lane
+void detectProximityLeft(int prev_size, int gap, double car_s, double end_path_s,
+                          const vector<vector<double>> &sensor_fusion, int lane, bool &left_flag)
+{
+    double car_future_s;
+    // the following define parameters of the sensor fusion data, i.e. parameters of other cars
+    double d;
+    double s;
+    double vx;
+    double vy;
+    double v;
+
+    // what our car s will look like in the future
+    if (prev_size > 0)
+    {
+        car_future_s = end_path_s;
+    }
+    else
+    {
+        car_future_s = car_s;
+    }
+
+    // Go through sensor fusion data for i cars and take action if there's a car in my lane
+    for (int i = 0; i < sensor_fusion.size(); i++)
+    {
+        d = sensor_fusion[i][6];
+        // if another car is in my left lane
+        if ((d < 2 + 4 * (lane-1) + 2) && (d > 2 + 4 * (lane-1) - 2))
+        {
+            vx = sensor_fusion[i][3];
+            vy = sensor_fusion[i][4];
+            v = sqrt(vx * vx + vy * vy);
+            s = sensor_fusion[i][5];
+
+            // using previous path we can project the car so we know what it'll look like in the future
+            s += (double) prev_size * 0.02 * v;
+
+            // knowing this, is our car_s close to the other car's s?:
+            if (abs(s - car_future_s) < gap)
+            {
+                left_flag = true;
+            }
+        }
+    }
+}
+
+// Detect proximity of a car in the left lane
+void detectProximityRight(int prev_size, int gap, double car_s, double end_path_s,
+                         const vector<vector<double>> &sensor_fusion, int lane, bool &right_flag)
+{
+    double car_future_s;
+    // the following define parameters of the sensor fusion data, i.e. parameters of other cars
+    double d;
+    double s;
+    double vx;
+    double vy;
+    double v;
+
+    // what our car s will look like in the future
+    if (prev_size > 0)
+    {
+        car_future_s = end_path_s;
+    }
+    else
+    {
+        car_future_s = car_s;
+    }
+
+    // Go through sensor fusion data for i cars and take action if there's a car in my lane
+    for (int i = 0; i < sensor_fusion.size(); i++)
+    {
+        d = sensor_fusion[i][6];
+        // if another car is in my left lane
+        if ((d < 2 + 4 * (lane+1) + 2) && (d > 2 + 4 * (lane+1) - 2))
+        {
+            vx = sensor_fusion[i][3];
+            vy = sensor_fusion[i][4];
+            v = sqrt(vx * vx + vy * vy);
+            s = sensor_fusion[i][5];
+
+            // using previous path we can project the car so we know what it'll look like in the future
+            s += (double) prev_size * 0.02 * v;
+
+            // knowing this, is our car_s close to the other car's s?:
+            if (abs(s - car_future_s) < gap)
+            {
+                right_flag = true;
+            }
+        }
+    }
+}
+
 // Gives a list if possible states for each iteration of the simulator
 std::vector<std::string> getPossibleStates(int lane)
 {
@@ -352,7 +444,7 @@ std::vector<std::string> getPossibleStates(int lane)
 }
 
 // Given the next state, i know what lane to change into
-int getNextState(const std::string &state, int prev_lane)
+int chooseNextState(const std::string &state, int prev_lane)
 {
     int lane;
     if(state == "KL")
@@ -371,13 +463,28 @@ int getNextState(const std::string &state, int prev_lane)
 }
 
 // Given the next state, i know what lane to change into
-void actionNextState(const std::string &state, const bool &flag1, double &ref_vel)
+void actionNextState(const std::string &state, const bool &flag_ahead, const bool &flag_left,
+        const bool &flag_right, double &ref_vel, int &lane)
 {
+    std::cout << "left flag=" << flag_left << " ahead flag=" << flag_ahead << std::endl;
     double accpf =  0.224; // 0.224 (default) equivalent to -5m/s2
-    if (state == "KL" && flag1) {
-        ref_vel -= accpf;
-    } else if (state == "KL" && ref_vel < 49.5) {
+    if (ref_vel < 49.5) {
         ref_vel += accpf;
+    }
+    else if (state == "KL" && flag_ahead) {
+        ref_vel -= accpf;
+    }
+    else if (state == "LCL" && flag_ahead && flag_left == false) {
+        lane = chooseNextState(state, lane);
+    }
+    else if (state == "LCL" && flag_ahead && flag_left) {
+        ref_vel -= accpf;
+    }
+    else if (state == "LCR" && flag_ahead && flag_right == false) {
+        lane = chooseNextState(state, lane);
+    }
+    else if (state == "LCR" && flag_ahead && flag_right) {
+        ref_vel -= accpf;
     }
 }
 
@@ -470,10 +577,14 @@ int main() {
             possible_states = getPossibleStates(lane);
 
             // TODO: (done) detect proximity of a car ahead of us given a gap in meters
-            bool proximity_flag = false;    // flag that indicates proximity
+            bool proximity_flag = false;    // flag that indicates proximity ahead
+            bool left_flag = false;         // flag that indicates proximity in the left lane
+            bool right_flag = false;        // flag that indicates proximity in the right lane
             int gap = 30;                   // gap in meters
 
-            detectProximity(prev_size, gap, car_s, end_path_s, sensor_fusion, lane, proximity_flag);
+            detectProximityAhead(prev_size, gap, car_s, end_path_s, sensor_fusion, lane, proximity_flag);
+            detectProximityLeft(prev_size, gap, car_s, end_path_s, sensor_fusion, lane, left_flag);
+            detectProximityRight(prev_size, gap, car_s, end_path_s, sensor_fusion, lane, right_flag);
 
             // TODO: (done) if there's a car ahead of us, generate trajectories for each possible state
             int hip_lane;
@@ -517,16 +628,16 @@ int main() {
                     //std::cout << hip_lane << std::endl;
                 }
                 // algun metodo de eleccion me dara el indice de possible states 0,1   0,1,2    0,1
-                std::string next_state;
-                next_state = "KL"; //possible_states[0];//"LCL";
-                lane = getNextState(next_state, lane);
-                std::cout << "lane=" << lane << ", " << possible_states[0] << " , iter=" << iteracion << std::endl;
+                //std::string next_state;
+                //next_state = "LCL"; //possible_states[0];//"LCL";
+                //std::cout << possible_states[0] << " , iter=" << iteracion << std::endl;
             }
 
+            std::cout << "iter=" << iteracion << std::endl;
             std::string next_state;
-            next_state = "KL"; //possible_states[0];//"LCL";
+            next_state = "LCL"; //possible_states[0];//"LCL"; este no lo tendria que declarar de nuevo...
             // TODO: (done) Take action
-            actionNextState(next_state, proximity_flag, ref_vel);
+            actionNextState(next_state, proximity_flag, left_flag, right_flag, ref_vel, lane);
 
             // TODO: (done) define a path made up of x,y points that the car will visit sequentially every .02s
             // Define the actual points the planner will be using:
