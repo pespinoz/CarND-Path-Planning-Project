@@ -12,6 +12,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c5ac27fb-f396-4b43-8ae2-26bb94688195" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/path_planning.dir/src/main.cpp.o" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
@@ -37,13 +38,13 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="cpp" value="5369" />
+          <entry key="cpp" value="5923" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Doxygen file" value="5" />
-          <entry key="ObjectiveC" value="5364" />
+          <entry key="ObjectiveC" value="5918" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -69,8 +70,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="640">
-              <caret line="443" column="32" lean-forward="true" selection-start-line="443" selection-start-column="32" selection-end-line="443" selection-end-column="32" />
+            <state relative-caret-position="370">
+              <caret line="393" column="4" lean-forward="true" selection-start-line="393" selection-start-column="4" selection-end-line="393" selection-end-column="4" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -113,6 +114,7 @@
       <find>pts</find>
       <find>ref_yaw</find>
       <find>ref_x</find>
+      <find>state</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -226,12 +228,12 @@
       <workItem from="1533094770561" duration="10332000" />
       <workItem from="1533116963655" duration="2218000" />
       <workItem from="1533119551041" duration="8824000" />
-      <workItem from="1533192855415" duration="32949000" />
+      <workItem from="1533192855415" duration="36140000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="82222000" />
+    <option name="totallyTimeSpent" value="85413000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="30" width="1600" height="803" extended-state="6" />
@@ -264,6 +266,20 @@
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/main.cpp</url>
+          <line>443</line>
+          <option name="timeStamp" value="29" />
+        </line-breakpoint>
+      </breakpoints>
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
+    </breakpoint-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="evaluateExpression">
@@ -330,8 +346,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="640">
-          <caret line="443" column="32" lean-forward="true" selection-start-line="443" selection-start-column="32" selection-end-line="443" selection-end-column="32" />
+        <state relative-caret-position="370">
+          <caret line="393" column="4" lean-forward="true" selection-start-line="393" selection-start-column="4" selection-end-line="393" selection-end-column="4" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>

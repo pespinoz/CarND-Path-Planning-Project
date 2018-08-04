@@ -170,7 +170,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
-// define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+// Define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y, double car_yaw, double car_s,
         int prev_size, vector<double> previous_path_x, vector<double> previous_path_y,
         const vector<double> &map_waypoints_x, const vector<double> &map_waypoints_y,
@@ -288,7 +288,7 @@ void generateTrajectory(int ini_lane, double ref_vel, double car_x, double car_y
     }
 }
 
-// detect proximity of a car ahead of us
+// Detect proximity of a car ahead of us
 void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
         const vector<vector<double>> &sensor_fusion, int &ini_lane, bool &proximity_flag)
 {
@@ -334,6 +334,24 @@ void detectProximity(int prev_size, int gap, double car_s, double end_path_s,
     }
 }
 
+// Gives a list if possible states for each iteration of the simulator
+std::vector<std::string> getPossibleStates(int ini_lane)
+{
+    if(ini_lane == 0)
+    {
+        return {"LCL", "KL"};
+    }
+    else if(ini_lane == 1)
+    {
+        return {"LCL", "KL", "LCR"};
+    }
+    else if(ini_lane == 2)
+    {
+        return {"LCR", "KL"};
+    }
+}
+
+
 int main() {
   uWS::Hub h;
 
@@ -352,6 +370,8 @@ int main() {
   int ini_lane = 1;
   // Reference velocity
   double ref_vel = 0.0;
+  // The initial state
+  std::vector<std::string> ini_state = {"KL"};
 
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
@@ -375,9 +395,8 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&ini_lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,
-               &map_waypoints_dy]
+  h.onMessage([&ini_lane, &ini_state, &ref_vel,
+               &map_waypoints_x,&map_waypoints_y,&map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy]
     (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -417,28 +436,33 @@ int main() {
           	json msgJson;
             int prev_size = previous_path_x.size();
 
-            // TODO: detect proximity of a car ahead of us given a gap in meters
+            // TODO: (done) get a list of possible states
+            std::vector<std::string> states;
+            states = getPossibleStates(ini_lane);
+
+            // TODO: (done) detect proximity of a car ahead of us given a gap in meters
             bool proximity_flag = false;    // flag that indicates proximity
             int gap = 30;                   // gap in meters
 
             detectProximity(prev_size, gap, car_s, end_path_s, sensor_fusion, ini_lane, proximity_flag);
             //std::cout << proximity_flag << std::endl;
 
-            // TODO: Take action
+            // TODO: (done) Take action
+            double accpf =  0.224; // 0.224 (default) equivalent to -5m/s2
             if(proximity_flag)
             {
                 if (ini_lane > 0) ///////////// we could deaccelerate or change lanes
                 {
                     ini_lane = 0;
                 }
-                ref_vel -= 0.224; // equivalent to -5m/s2
+                ref_vel -= accpf;
             }
             else if(ref_vel < 49.5)
             {
-                ref_vel += 0.224;
+                ref_vel += accpf;
             }
 
-            // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+            // TODO: (done) define a path made up of x,y points that the car will visit sequentially every .02s
             // Define the actual points the planner will be using:
             vector<double> next_x_vals;
             vector<double> next_y_vals;
