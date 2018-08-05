@@ -174,7 +174,8 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, double car_yaw, double car_s,
         int prev_size, vector<double> previous_path_x, vector<double> previous_path_y,
         const vector<double> &map_waypoints_x, const vector<double> &map_waypoints_y,
-        const vector<double> &map_waypoints_s, vector<double> &x_vals, vector<double> &y_vals)
+        const vector<double> &map_waypoints_s,
+        vector<double> &x_vals, vector<double> &y_vals, const vector<double> par_wps)
 {
     // create a list of widely spaced (x, y) waypoints, evenly spaced at 30m. Later we will interpolate
     // these points with a spline and fill with more points, such that the speed is controlled.
@@ -221,9 +222,9 @@ void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, do
     }
 
     // In Frenet add evenly 30m spaced points ahead of the starting reference
-    vector<double> next_wp0 = getXY(car_s+45, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp1 = getXY(car_s+90, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp2 = getXY(car_s+135, 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp0 = getXY(car_s+par_wps[0],2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+par_wps[1],2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+par_wps[2],2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
     // Complete the 5 spaced waypoints:
     ptsx.push_back(next_wp0[0]);
@@ -259,7 +260,7 @@ void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, do
     }
 
     // Calculate how to break up spline points such that we travel at desired reference velocity:
-    double target_x = 30.0;
+    double target_x = par_wps[3];
     double target_y = spl(target_x);
     double target_d = sqrt(target_x*target_x + target_y*target_y);
 
@@ -344,7 +345,7 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             s += (double) prev_size * 0.02 * v;
 
             // knowing this, is our car_s close to the other car's s?:
-            if ((s - car_future_s) < gap && (car_future_s -s) < (gap-18))
+            if ((s - car_future_s) < gap+10 && (car_future_s -s) < (gap-18))
             {
                 left_flag = true;
                 target_vel = v;
@@ -362,7 +363,7 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             s += (double) prev_size * 0.02 * v;
 
             // knowing this, is our car_s close to the other car's s?:
-            if ((s - car_future_s) < gap && (car_future_s -s) < (gap-18))
+            if ((s - car_future_s) < gap+10 && (car_future_s -s) < (gap-18))
             {
                 right_flag = true;
             }
@@ -535,7 +536,7 @@ int main() {
             bool ahead_flag = false;        // flag that indicates proximity ahead
             bool left_flag = false;         // flag that indicates proximity in the left lane
             bool right_flag = false;        // flag that indicates proximity in the right lane
-            int gap = 30;                   // gap in meters
+            int gap = 30;                   // vehicle gap in meters
 
             detectCarProximity(prev_size, gap, car_s, end_path_s, sensor_fusion,
                     lane, ahead_flag, left_flag, right_flag, target_vel);
@@ -546,9 +547,9 @@ int main() {
             {
                 //vector<vector<double>> aa;
                 //vector<vector<double>> bb;
-                //std::ofstream myfile;
-                //std::string fname = "data/myfile_" + std::to_string(iteracion) + ".txt";
-                //myfile.open(fname);
+                std::ofstream myfile;
+                std::string fname = "data_mine/myfile_" + std::to_string(iteracion) + ".txt";
+                myfile.open(fname);
                 for(int i=0; i < possible_states.size(); i++) {
                     if (possible_states[i] == "LCL")
                     {
@@ -561,15 +562,15 @@ int main() {
                         hip_lane = lane;
                     }
                     // Define the actual points the planner will be using:
-                    // vector<double> next_x;
-                    // vector<double> next_y;
+                    vector<double> next_x;
+                    vector<double> next_y;
+                    // Define waypoints for the spline and how it will be broken up
+                    vector<double> wps = {45, 90, 135, 30};
 
-                    //generateTrajectory(hip_lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size,
-                    //                   previous_path_x, previous_path_y, map_waypoints_x, map_waypoints_y,
-                    //                   map_waypoints_s, next_x, next_y);
-                    //aa[i] = next_x;
-                    //bb[i] = next_y;
-                    /*
+                    generateTrajectory(hip_lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size,
+                                       previous_path_x, previous_path_y, map_waypoints_x, map_waypoints_y,
+                                       map_waypoints_s, next_x, next_y, wps);
+
                     myfile << "iteracion: " << iteracion << std::endl;
                     myfile << "--- next_x" << std::endl;
                     for(vector<double>::const_iterator i = next_x.begin(); i != next_x.end(); ++i) {
@@ -577,16 +578,13 @@ int main() {
                     myfile << "--- next_y" << std::endl;
                     for(vector<double>::const_iterator i = next_y.begin(); i != next_y.end(); ++i) {
                         myfile << *i << '\n'; }
-                    */
-
-                    //std::cout << hip_lane << std::endl;
                 }
                 // algun metodo de eleccion me dara el indice de possible states 0,1   0,1,2    0,1
                 // que ocupo mas abajo
             }
 
             std::string next_state;
-            next_state = possible_states[0];
+            next_state = possible_states[1];
             // TODO: (done) Take action
             actionNextState(next_state, ahead_flag, left_flag, right_flag, ref_vel, target_vel, lane);
 
@@ -594,10 +592,12 @@ int main() {
             // Define the actual points the planner will be using:
             vector<double> next_x_vals;
             vector<double> next_y_vals;
+            // Define waypoints for the spline and how it will be broken up
+            vector<double> par_wps = {45, 90, 135, 30};
 
             generateTrajectory(lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
-                    previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s, next_x_vals, next_y_vals);
-
+                    previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s,
+                    next_x_vals, next_y_vals, par_wps);
 
             // Continue
           	msgJson["next_x"] = next_x_vals;
