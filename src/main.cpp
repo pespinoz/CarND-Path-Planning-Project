@@ -291,7 +291,7 @@ void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, do
 // Detect proximity of a car ahead of us
 void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
         const vector<vector<double>> &sensor_fusion, int lane,
-        bool &ahead_flag, bool &left_flag, bool &right_flag)
+        bool &ahead_flag, bool &left_flag, bool &right_flag, double &target_vel)
 {
     double car_future_s;
     // the following define parameters of the sensor fusion data, i.e. parameters of other cars
@@ -347,6 +347,7 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             if ((s - car_future_s) < gap && (car_future_s -s) < (gap-18))
             {
                 left_flag = true;
+                target_vel = v;
             }
         }
         // if another car is in my right lane
@@ -407,24 +408,31 @@ int chooseNextState(const std::string &state, int prev_lane)
 
 // Given the next state, i know what lane to change into
 void actionNextState(const std::string &next_state, const bool &flag_ahead, const bool &flag_left,
-        const bool &flag_right, double &ref_vel, int &lane)
+        const bool &flag_right, double &ref_vel, double &target_vel, int &lane)
 {
     std::cout << "left=" << flag_left << ", ahead=" << flag_ahead << ", right=" << flag_right
     << ", next state=" << next_state << std::endl;
     // accpf*22.3! gives a delta velocity in m/s2 from mph [accpf=0.224 gives a delta v of 5m/s2]
     double accpf =  0.364;
+    // following two refer to the KL state:
     if (ref_vel < 49.5 && flag_ahead == false) {
-        ref_vel += accpf;
+        ref_vel += 1.5*accpf;
     }
     else if (next_state == "KL" && flag_ahead) {
-        ref_vel -= 0.7*accpf;
+        if(target_vel < ref_vel){
+            ref_vel -= 1.5*accpf;
+        } else if (target_vel >= ref_vel){
+            ref_vel += 1.5*accpf;
+        }
     }
+    // following two refer to the LCL state:
     else if (next_state == "LCL" && flag_ahead && flag_left == false) {
         lane = chooseNextState(next_state, lane);
     }
     else if (next_state == "LCL" && flag_ahead && flag_left) {
-        ref_vel -= 0.7*accpf;
+        ref_vel -= accpf;
     }
+    // following two refer to the LCR state:
     else if (next_state == "LCR" && flag_ahead && flag_right == false) {
         lane = chooseNextState(next_state, lane);
     }
@@ -451,6 +459,8 @@ int main() {
   int lane = 1;
   // Reference velocity
   double ref_vel = 0.0;
+  // Target vehicle velocity
+  double target_vel = 0.0;
 
   int iteracion=0;
 
@@ -476,7 +486,7 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&iteracion, &lane, &ref_vel,
+  h.onMessage([&iteracion, &lane, &ref_vel, &target_vel,
                &map_waypoints_x,&map_waypoints_y,&map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy]
     (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -528,7 +538,7 @@ int main() {
             int gap = 30;                   // gap in meters
 
             detectCarProximity(prev_size, gap, car_s, end_path_s, sensor_fusion,
-                    lane, ahead_flag, left_flag, right_flag);
+                    lane, ahead_flag, left_flag, right_flag, target_vel);
 
             // TODO: (done) if there's a car ahead of us, generate trajectories for each possible state
             int hip_lane;
@@ -576,9 +586,9 @@ int main() {
             }
 
             std::string next_state;
-            next_state = possible_states[1];
+            next_state = possible_states[0];
             // TODO: (done) Take action
-            actionNextState(next_state, ahead_flag, left_flag, right_flag, ref_vel, lane);
+            actionNextState(next_state, ahead_flag, left_flag, right_flag, ref_vel, target_vel, lane);
 
             // TODO: (done) define a path made up of x,y points that the car will visit sequentially every .02s
             // Define the actual points the planner will be using:
