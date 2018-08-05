@@ -12,9 +12,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c5ac27fb-f396-4b43-8ae2-26bb94688195" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/path_planning.dir/src/main.cpp.o" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/path_planning.dir/src/main.cpp.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/path_planning" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/path_planning" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
@@ -42,13 +39,13 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="cpp" value="8236" />
+          <entry key="cpp" value="8347" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Doxygen file" value="5" />
-          <entry key="ObjectiveC" value="8231" />
+          <entry key="ObjectiveC" value="8342" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -74,8 +71,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="315">
-              <caret line="225" column="44" selection-start-line="225" selection-start-column="44" selection-end-line="225" selection-end-column="44" />
+            <state relative-caret-position="288">
+              <caret line="329" column="16" selection-start-line="329" selection-start-column="16" selection-end-line="329" selection-end-column="16" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -123,6 +120,7 @@
       <find>ini_lane</find>
       <find>gap</find>
       <find>0.22</find>
+      <find>cout</find>
     </findStrings>
     <replaceStrings>
       <replace>lane</replace>
@@ -241,23 +239,23 @@
       <workItem from="1533119551041" duration="8824000" />
       <workItem from="1533192855415" duration="48118000" />
       <workItem from="1533379040257" duration="61000" />
-      <workItem from="1533379455419" duration="11840000" />
+      <workItem from="1533379455419" duration="16533000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="109332000" />
+    <option name="totallyTimeSpent" value="114025000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="-4" width="1600" height="803" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.46171695" visible="true" weight="0.18339768" />
-      <window_info id="Structure" order="1" sideWeight="0.53828305" side_tool="true" visible="true" weight="0.18339768" />
+      <window_info active="true" id="Structure" order="1" sideWeight="0.53828305" side_tool="true" visible="true" weight="0.18339768" />
       <window_info id="Favorites" order="2" sideWeight="0.5313225" side_tool="true" weight="0.17567568" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32761312" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32761312" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39937598" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -328,8 +326,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="225" column="44" selection-start-line="225" selection-start-column="44" selection-end-line="225" selection-end-column="44" />
+        <state relative-caret-position="288">
+          <caret line="329" column="16" selection-start-line="329" selection-start-column="16" selection-end-line="329" selection-end-column="16" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>

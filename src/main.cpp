@@ -411,7 +411,8 @@ void actionNextState(const std::string &next_state, const bool &flag_ahead, cons
 {
     std::cout << "left=" << flag_left << ", ahead=" << flag_ahead << ", right=" << flag_right
     << ", next state=" << next_state << std::endl;
-    double accpf =  0.364; // 0.224 (default) equivalent to -5m/s2
+    // accpf*22.3! gives a delta velocity in m/s2 from mph [accpf=0.224 gives a delta v of 5m/s2]
+    double accpf =  0.364;
     if (ref_vel < 49.5 && flag_ahead == false) {
         ref_vel += accpf;
     }
