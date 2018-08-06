@@ -291,9 +291,9 @@ void generateTrajectory(int lane, double ref_vel, double car_x, double car_y, do
 }
 
 // Detect proximity of a car ahead of us
-void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
+void detectCarProximity(int prev_size, int gap, double car_s, double car_v, double end_path_s,
         const vector<vector<double>> &sensor_fusion, int lane,
-        bool &ahead_flag, bool &left_flag, bool &right_flag, double &target_vel)
+        bool &ahead_flag, bool &left_flag, bool &right_flag, bool &emerg_flag, double &target_vel)
 {
     double car_future_s;
     // the following define parameters of the sensor fusion data, i.e. parameters of other cars
@@ -332,9 +332,15 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             if ((s > car_future_s) && (s - car_future_s < gap))
             {
                 ahead_flag = true;
+                target_vel = v;
+            }
+            else if (abs(s - car_future_s) < gap/2 && abs(v - car_v) > 15)
+            {
+                emerg_flag = true;
             }
         }
         // if another car is in my left lane
+        // gap+2 adelante  y < 5 por atras
         else if ((d < 2 + 4 * (lane-1) + 2) && (d > 2 + 4 * (lane-1) - 2) && lane > 0)
         {
             vx = sensor_fusion[i][3];
@@ -346,10 +352,11 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             s += (double) prev_size * 0.02 * v;
 
             // knowing this, is our car_s close to the other car's s?:
-            if ((s - car_future_s) < gap+2 && (car_future_s -s) < 5)
+            if (((s - car_future_s) < gap && (car_future_s -s) < 2) ||
+                ((s - car_future_s) < gap+4 && (car_future_s -s) < 2 && v < 0.8*car_v) ||
+                ((s - car_future_s) < gap   && (car_future_s -s) < 6 && v > 1.2*car_v))
             {
                 left_flag = true;
-                target_vel = v;
             }
         }
         // if another car is in my right lane
@@ -364,7 +371,9 @@ void detectCarProximity(int prev_size, int gap, double car_s, double end_path_s,
             s += (double) prev_size * 0.02 * v;
 
             // knowing this, is our car_s close to the other car's s?:
-            if ((s - car_future_s) < gap+2 && (car_future_s -s) < 5)
+            if (((s - car_future_s) < gap && (car_future_s -s) < 2) ||
+                ((s - car_future_s) < gap+4 && (car_future_s -s) < 2 && v < 0.8*car_v) ||
+                ((s - car_future_s) < gap   && (car_future_s -s) < 6 && v > 1.2*car_v))
             {
                 right_flag = true;
             }
@@ -389,13 +398,13 @@ std::vector<std::string> getPossibleStates(int lane)
     }
 }
 
-//
+// trigger the transition function to change the current state:
 void getTransition(std::vector<std::string> possible_states, vector<double> &cost_v, vector<double> &cost_a,
         std::string &next_s)
 {
     // Find the extreme point, i.e. the trigger for the state transition
     std::vector<double>::iterator result;
-    if (cost_a[0] > 0.0000001){
+    if (cost_a[0] > 0.00000001){
         result = std::min_element(cost_a.begin(), cost_a.end());
         next_s = possible_states[std::distance(cost_a.begin(), result)];
     }
@@ -472,23 +481,34 @@ int chooseNextState(const std::string &state, int prev_lane)
 
 // Given the next state, i know what lane to change into
 void actionNextState(const std::string &next_state, const bool &flag_ahead, const bool &flag_left,
-        const bool &flag_right, double &ref_vel, double &target_vel, int &lane)
+        const bool &flag_right, const bool &flag_emerg, double &ref_vel, double &target_vel, int &lane)
 {
+    //2//
     std::cout << "left=" << flag_left << ", ahead=" << flag_ahead << ", right=" << flag_right <<
+    //2//
     ", next state=" << next_state << ", current lane: " <<  lane << std::endl;
+
     // accpf*22.3! gives a delta velocity in m/s2 from mph [accpf=0.224 gives a delta v of 5m/s2]
     double accpf =  0.294;
-    // following two refer to the KL state:
-    if (ref_vel < 49.5 && flag_ahead == false) {
+
+    // following refer to the KL state:
+    if (ref_vel < 49.5 && flag_ahead == 0) {
         ref_vel += 1.*accpf;
     }
+    else if (ref_vel < 49.5 && flag_ahead == 0 && flag_emerg) {
+        ref_vel += 1.8*accpf;
+    }
+    else if (flag_ahead && flag_emerg) {
+        ref_vel -= 1.8*accpf;
+    }
     else if (next_state == "KL" && flag_ahead) {
-        if(target_vel < ref_vel){
+        if(target_vel < 0.9*ref_vel){
             ref_vel -= 1.*accpf;
-        } else if (target_vel >= ref_vel){
+        } else if (target_vel >= 0.9*ref_vel){
             ref_vel += 1.*accpf;
         }
     }
+
     // following two refer to the LCL state:
     else if (next_state == "LCL" && flag_ahead && flag_left == 0) {
         lane = chooseNextState(next_state, lane);
@@ -501,6 +521,7 @@ void actionNextState(const std::string &next_state, const bool &flag_ahead, cons
             ref_vel += 1.*accpf;
         }
     }
+
     // following two refer to the LCR state:
     else if (next_state == "LCR" && flag_ahead && flag_right == 0) {
         lane = chooseNextState(next_state, lane);
@@ -610,14 +631,11 @@ int main() {
             bool ahead_flag = false;        // flag that indicates proximity ahead
             bool left_flag = false;         // flag that indicates proximity in the left lane
             bool right_flag = false;        // flag that indicates proximity in the right lane
+            bool emerg_flag = false;        // flag that indicates proximity in the right lane
             int gap = 28;                   // vehicle gap in meters
 
-            detectCarProximity(prev_size, gap, car_s, end_path_s, sensor_fusion,
-                    lane, ahead_flag, left_flag, right_flag, target_vel);
-
-            //detectCarCollision(prev_size, gap, car_s, end_path_s, sensor_fusion,
-            //                   lane, ahead_flag, left_flag, right_flag, target_vel);
-
+            detectCarProximity(prev_size, gap, car_s, car_speed, end_path_s, sensor_fusion,
+                    lane, ahead_flag, left_flag, right_flag, emerg_flag, target_vel);
 
             // TODO: (done)  - If there's a car ahead of us, generate trajectories for each possible state
             // TODO: (done)  and compute their associated costs
@@ -628,10 +646,12 @@ int main() {
             getCosts(ahead_flag, possible_states, ref_vel, lane, car_x, car_y, car_yaw, car_s, prev_size,
                     previous_path_x, previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s,
                     cost_velocity, cost_acc, next_state);
+            //1//
             std::cout << "frame: " << frame << " ";
 
             // TODO: (done) Take action
-            actionNextState(next_state, ahead_flag, left_flag, right_flag, ref_vel, target_vel, lane);
+            actionNextState(next_state, ahead_flag, left_flag, right_flag, emerg_flag,
+                    ref_vel, target_vel, lane);
             next_state = "";
 
             // TODO: (done) define a path made up of x,y points that the car will visit sequentially every .02s
@@ -639,12 +659,26 @@ int main() {
             vector<double> next_x_vals;
             vector<double> next_y_vals;
             // Define waypoints for the spline and how it will be broken up
-            vector<double> par_wps = {45, 90, 135, 45}; //45, 90, 135, 30
+            vector<double> par_wps = {55, 90, 135, 45}; //45, 90, 135, 30
 
             generateTrajectory(lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
                     previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s,
                     next_x_vals, next_y_vals, par_wps);
+/*
+            // Compute a third cost function
+            vector<double> sd2 = getFrenet(next_x_vals[20], next_y_vals[20],
+                                           atan2(next_y_vals[20] - next_y_vals[10], next_x_vals[20] - next_x_vals[10]),
+                                           map_waypoints_x, map_waypoints_y);
 
+            vector<double> sd1 = getFrenet(next_x_vals[10], next_y_vals[10],
+                                           atan2(next_y_vals[10] - next_y_vals[0], next_x_vals[10] - next_x_vals[0]),
+                                           map_waypoints_x, map_waypoints_y);
+
+            double curv = sqrt(((next_x_vals[20]-next_x_vals[10])/(sd2[0]-sd1[0]))*((next_x_vals[20]-next_x_vals[10])/
+                    (sd2[0]-sd1[0])) + ((next_y_vals[20]-next_y_vals[10])/(sd2[0]-sd1[0]))*(
+                            (next_y_vals[20]-next_y_vals[10])/(sd2[0]-sd1[0])));
+            std::cout << "curv: " << curv << std::endl;
+*/
 
             // Continue
           	msgJson["next_x"] = next_x_vals;
@@ -698,3 +732,8 @@ int main() {
   }
   h.run();
 }
+
+//bool collision_flag_plus = false;   // flags that indicate imminent collision
+//bool collision_flag_minus = false;
+
+//detectCarCollision(car_s, car_d, sensor_fusion, collision_flag_plus, collision_flag_minus);
