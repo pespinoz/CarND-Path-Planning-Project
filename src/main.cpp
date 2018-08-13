@@ -3,7 +3,6 @@
 #include <uWS/uWS.h>
 #include <chrono>
 #include <iostream>
-#include <algorithm>
 #include <thread>
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
@@ -334,7 +333,7 @@ void detectCarProximity(int prev_size, int gap, double car_s, double car_v, doub
                 ahead_flag = true;
                 target_vel = v;
             }
-            else if (abs(s - car_future_s) < gap/2 && abs(v - car_v) > 15)
+            else if (abs(s - car_future_s) < gap/2.0 && abs(v - car_v) > 15)
             {
                 emerg_flag = true;
             }
@@ -483,11 +482,6 @@ int chooseNextState(const std::string &state, int prev_lane)
 void actionNextState(const std::string &next_state, const bool &flag_ahead, const bool &flag_left,
         const bool &flag_right, const bool &flag_emerg, double &ref_vel, double &target_vel, int &lane)
 {
-    //2//
-    std::cout << "left=" << flag_left << ", ahead=" << flag_ahead << ", right=" << flag_right <<
-    //2//
-    ", next state=" << next_state << ", current lane: " <<  lane << std::endl;
-
     // accpf*22.3! gives a delta velocity in m/s2 from mph [accpf=0.224 gives a delta v of 5m/s2]
     double accpf =  0.294;
 
@@ -646,8 +640,6 @@ int main() {
             getCosts(ahead_flag, possible_states, ref_vel, lane, car_x, car_y, car_yaw, car_s, prev_size,
                     previous_path_x, previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s,
                     cost_velocity, cost_acc, next_state);
-            //1//
-            std::cout << "frame: " << frame << " ";
 
             // TODO: (done) Take action
             actionNextState(next_state, ahead_flag, left_flag, right_flag, emerg_flag,
@@ -664,21 +656,6 @@ int main() {
             generateTrajectory(lane, ref_vel, car_x, car_y, car_yaw, car_s, prev_size, previous_path_x,
                     previous_path_y, map_waypoints_x, map_waypoints_y, map_waypoints_s,
                     next_x_vals, next_y_vals, par_wps);
-/*
-            // Compute a third cost function
-            vector<double> sd2 = getFrenet(next_x_vals[20], next_y_vals[20],
-                                           atan2(next_y_vals[20] - next_y_vals[10], next_x_vals[20] - next_x_vals[10]),
-                                           map_waypoints_x, map_waypoints_y);
-
-            vector<double> sd1 = getFrenet(next_x_vals[10], next_y_vals[10],
-                                           atan2(next_y_vals[10] - next_y_vals[0], next_x_vals[10] - next_x_vals[0]),
-                                           map_waypoints_x, map_waypoints_y);
-
-            double curv = sqrt(((next_x_vals[20]-next_x_vals[10])/(sd2[0]-sd1[0]))*((next_x_vals[20]-next_x_vals[10])/
-                    (sd2[0]-sd1[0])) + ((next_y_vals[20]-next_y_vals[10])/(sd2[0]-sd1[0]))*(
-                            (next_y_vals[20]-next_y_vals[10])/(sd2[0]-sd1[0])));
-            std::cout << "curv: " << curv << std::endl;
-*/
 
             // Continue
           	msgJson["next_x"] = next_x_vals;
@@ -732,8 +709,3 @@ int main() {
   }
   h.run();
 }
-
-//bool collision_flag_plus = false;   // flags that indicate imminent collision
-//bool collision_flag_minus = false;
-
-//detectCarCollision(car_s, car_d, sensor_fusion, collision_flag_plus, collision_flag_minus);
